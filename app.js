@@ -10,7 +10,10 @@ const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
+const cors = require('cors');
+app.use(cors());
 app.use(express.json());
+
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
