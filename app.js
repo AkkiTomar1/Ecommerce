@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 
@@ -10,72 +9,68 @@ const userRoutes = require('./routes/userRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 
-const User = require('./models/User'); // Mongo User
+const connectMongo = require('./config/dbMongo');
+const { connectPostgres } = require('./config/dbPg');
 
-// ✅ PostgreSQL (Sequelize)
-const sequelize = require('./config/dbPg');
+const User = require('./models/User');
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
+/* ================= DB CONNECTIONS ================= */
 
-// ================= MONGODB =================
-mongoose.connect(process.env.MONGO_URI)
-.then(async () => {
-  console.log('MongoDB Connected');
-  await createDefaultAdmin(); // Hardcoded admin create
-})
-.catch(err => console.log('MongoDB connection error:', err.message));
+async function startServer() {
+  await connectMongo();
+  await connectPostgres();
 
+  await createDefaultAdmin(); // business logic stays here
 
-// ================= POSTGRESQL =================
+  app.listen(process.env.PORT || 3000, () =>
+    console.log(`Server running on port ${process.env.PORT || 3000}`)
+  );
+}
 
-sequelize.authenticate()
-  .then(() => {
-    console.log('PostgreSQL Connected');
-  })
-  .catch(err => console.log('PostgreSQL Error:', err.message));
+/* ================= DEFAULT ADMIN ================= */
 
-
-  sequelize.sync()
-  .then(() => console.log('PostgreSQL Tables Synced'))
-  .catch(err => console.log('PG Sync Error:', err));
-
-// ================= HARD CODED ADMIN =================
 async function createDefaultAdmin() {
   try {
     const adminEmail = 'admin@eshop.com';
-    const existingAdmin = await User.findOne({ email: adminEmail });
+
+    const existingAdmin = await User.findOne({
+      where: { email: adminEmail }
+    });
 
     if (!existingAdmin) {
       const hashedPassword = await bcrypt.hash('Admin@123', 10);
-      const admin = new User({
+
+      await User.create({
         name: 'Admin',
         email: adminEmail,
         password: hashedPassword,
         role: 'admin'
       });
-      await admin.save();
-      console.log('✅ Default admin created!');
+
+      console.log('Default admin created');
     } else {
       console.log('Admin already exists');
     }
-  } catch (error) {
-    console.log('Error creating default admin:', error.message);
+  } catch (err) {
+    console.error('Admin creation failed:', err.message);
   }
 }
 
+/* ================= ROUTES ================= */
 
-// ================= ROUTES =================
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 
+/* ================= SWAGGER ================= */
 
-// ================= SWAGGER =================
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+/* ================= START ================= */
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+startServer();

@@ -1,7 +1,5 @@
 const { Sequelize } = require('sequelize');
 
-
-
 const sequelize = new Sequelize(
   process.env.PG_DB,
   process.env.PG_USER,
@@ -13,4 +11,20 @@ const sequelize = new Sequelize(
   }
 );
 
-module.exports = sequelize;
+const connectPostgres = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('PostgreSQL Connected');
+
+    await sequelize.sync();
+    console.log('PostgreSQL Tables Synced');
+  } catch (err) {
+    console.error('PostgreSQL Error:', err.message);
+    process.exit(1);
+  }
+};
+
+module.exports = {
+  sequelize,
+  connectPostgres
+};

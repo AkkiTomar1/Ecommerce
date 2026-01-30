@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/dbPg');
+const { sequelize } = require('../config/dbPg'); // ✅ FIXED
 
 const User = sequelize.define('User', {
   id: {
@@ -8,7 +8,10 @@ const User = sequelize.define('User', {
     primaryKey: true
   },
   name: DataTypes.STRING,
-  email: { type: DataTypes.STRING, unique: true },
+  email: {
+    type: DataTypes.STRING,
+    unique: true
+  },
   password: DataTypes.STRING,
   role: {
     type: DataTypes.ENUM('admin', 'customer'),

@@ -45,7 +45,7 @@ exports.getOrders = async (req, res) => {
       .populate("products.productId", "name price")
       .skip(skip)
       .limit(limit)
-      .sort({ createdAt: -1 }); // optional: newest first
+      .sort({ createdAt: -1 });
 
     // Total orders count for the user
     const totalOrders = await Order.countDocuments({ user: req.user.id });
