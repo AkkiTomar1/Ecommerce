@@ -1,11 +1,12 @@
-const express = require('express');
-const { protect, customer } = require('../middleware/authMiddleware');
+const express = require("express");
+const { protect, customer } = require("../middleware/authMiddleware");
 const {
   createOrder,
   getOrders,
   updateOrder,
-  deleteOrder
-} = require('../controllers/orderController');
+  deleteOrder,
+} = require("../controllers/orderController");
+const Order = require("../models/Order");
 
 const router = express.Router();
 
@@ -20,21 +21,41 @@ const router = express.Router();
  * @swagger
  * /orders:
  *   post:
- *     summary: Place a new order (Customer only)
+ *     summary: Create new order
  *     tags: [Orders]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Order'
+ *             type: object
+ *             required:
+ *               - user
+ *               - products
+ *               - totalAmount
+ *             properties:
+ *               user:
+ *                 type: string
+ *               products:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - productId
+ *                     - quantity
+ *                   properties:
+ *                     productId:
+ *                       type: string
+ *                     quantity:
+ *                       type: integer
+ *               totalAmount:
+ *                 type: number
  *     responses:
  *       201:
- *         description: Order placed successfully
+ *         description: Order created successfully
  */
-router.post('/', protect, customer, createOrder);
+
+router.post("/", protect, customer, createOrder);
 
 /**
  * @swagger
@@ -48,7 +69,7 @@ router.post('/', protect, customer, createOrder);
  *       200:
  *         description: Orders fetched successfully
  */
-router.get('/', protect, customer, getOrders);
+router.get("/", protect, customer, getOrders);
 
 /**
  * @swagger
@@ -78,7 +99,21 @@ router.get('/', protect, customer, getOrders);
  *       200:
  *         description: Order updated successfully
  */
-router.put('/:id', protect, updateOrder);
+router.put(
+  "/:id",
+  protect,
+  async (req, res, next) => {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // Only admin or order owner can update
+    if (req.user.role !== "admin" && order.user !== req.user.id)
+      return res.status(403).json({ message: "Not authorized" });
+
+    next();
+  },
+  updateOrder,
+);
 
 /**
  * @swagger
@@ -98,6 +133,6 @@ router.put('/:id', protect, updateOrder);
  *       200:
  *         description: Order deleted successfully
  */
-router.delete('/:id', protect, deleteOrder);
+router.delete("/:id", protect, deleteOrder);
 
 module.exports = router;

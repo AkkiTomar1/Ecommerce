@@ -1,41 +1,29 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
 
-exports.protect = async (req, res, next) => {
-  let token;
+exports.protect = (req, res, next) => {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer'))
+    return res.status(401).json({ message: 'No token' });
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-
-  if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
-  }
+  const token = auth.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select('-password');
+    req.user = decoded;
     next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Not authorized, token failed' });
+  } catch {
+    res.status(401).json({ message: 'Invalid token' });
   }
 };
 
 exports.admin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    return res.status(403).json({ message: 'Admin only access' });
-  }
+  if (req.user.role !== 'admin')
+    return res.status(403).json({ message: 'Admin only' });
+  next();
 };
 
 exports.customer = (req, res, next) => {
-  if (req.user && req.user.role === 'customer') {
-    next();
-  } else {
-    return res.status(403).json({ message: 'Customer only access' });
-  }
+  if (req.user.role !== 'customer')
+    return res.status(403).json({ message: 'Customer only' });
+  next();
 };

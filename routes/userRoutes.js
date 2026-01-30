@@ -21,12 +21,11 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, email, password, role]
+ *             required: [name, email, password]
  *             properties:
  *               name: { type: string }
  *               email: { type: string }
  *               password: { type: string }
- *               role: { type: string, enum: [admin, customer] }
  *     responses:
  *       201: { description: User registered successfully }
  *       400: { description: Email already registered }

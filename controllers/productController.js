@@ -1,13 +1,19 @@
 const Product = require('../models/Product');
 
 exports.getProducts = async (req, res) => {
-  try {
-    const products = await Product.find();
-    res.json(products);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const search = req.query.search || '';
+
+  const products = await Product.find({ name: { $regex: search, $options: 'i' } })
+    .skip((page - 1) * limit)
+    .limit(limit);
+
+  const total = await Product.countDocuments({ name: { $regex: search, $options: 'i' } });
+
+  res.json({ page, limit, total, products });
 };
+
 
 exports.getProductById = async (req, res) => {
   try {
